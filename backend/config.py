@@ -17,11 +17,19 @@ class Settings(BaseSettings):
     debug: bool = False
     port: int = 8000
 
-    # DeepSeek 配置
-    deepseek_api_key: str = ""
-    deepseek_model: str = "deepseek-chat"
-    deepseek_temperature: float = 0.7
-    deepseek_system_prompt: str = "你是一个友好、专业的AI助手，名叫NaiLongAI。请用简洁清晰的中文回答用户的问题。"
+    # ===== 硅基流动 SiliconFlow 配置 =====
+    # API Key（兼容 OpenAI 协议）
+    siliconflow_api_key: str = ""
+    # 默认模型（DeepSeek-V3）
+    siliconflow_model: str = "deepseek-ai/DeepSeek-V3"
+    # API base URL
+    siliconflow_base_url: str = "https://api.siliconflow.cn/v1"
+    # 采样温度
+    siliconflow_temperature: float = 0.7
+    # 系统提示词
+    siliconflow_system_prompt: str = (
+        "你是一个友好、专业的AI助手，名叫NaiLongAI。请用简洁清晰的中文回答用户的问题。"
+    )
 
 
 @lru_cache

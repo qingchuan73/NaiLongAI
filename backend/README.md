@@ -1,20 +1,21 @@
 # NaiLongAI Backend
 
-基于 FastAPI + LangChain + DeepSeek 构建的 AI 对话后端服务。
+基于 FastAPI + LangChain + 硅基流动（SiliconFlow）构建的 AI 对话后端服务。
 
 ## 功能特性
 
 - 🚀 **FastAPI**：高性能异步 Web 框架
 - 🔗 **LangChain**：LLM 应用编排框架
-- 🤖 **DeepSeek**：高性价比大语言模型（`deepseek-chat`）
-- 💬 **流式对话**：基于 Server-Sent Events 的 token 级流式输出
+- 🌊 **硅基流动 SiliconFlow**：兼容 OpenAI 协议的高性价比模型平台
+- 🤖 **DeepSeek-V3**（默认）：通过硅基流动调用，能力强、成本低
+- 💬 **多轮对话**：支持 `messages` 数组传递历史消息
 - ⚙️ **配置管理**：通过 `.env` 文件和环境变量管理
 
 ## 环境要求
 
 - Python 3.10+
 - pip
-- DeepSeek API Key（[申请地址](https://platform.deepseek.com)）
+- 硅基流动 API Key（[申请地址](https://cloud.siliconflow.cn)）
 
 ## 快速开始
 
@@ -40,15 +41,15 @@ pip install -r requirements.txt
 
 ```bash
 cp .env.example .env
-# 编辑 .env，至少填入 DEEPSEEK_API_KEY
+# 编辑 .env，至少填入 SILICONFLOW_API_KEY
 ```
 
 `.env` 示例：
 
 ```env
-DEEPSEEK_API_KEY=sk-xxxxxxxxxxxxxxxx
-DEEPSEEK_MODEL=deepseek-chat
-DEEPSEEK_TEMPERATURE=0.7
+SILICONFLOW_API_KEY=sk-xxxxxxxxxxxxxxxx
+SILICONFLOW_MODEL=deepseek-ai/DeepSeek-V3
+SILICONFLOW_TEMPERATURE=0.7
 ```
 
 ### 4. 启动服务
@@ -57,11 +58,14 @@ DEEPSEEK_TEMPERATURE=0.7
 # 方式一：使用 uvicorn（推荐）
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
 
-# 方式二：使用 fastapi dev（需要 fastapi[standard]）
-fastapi dev
-
-# 方式三：直接运行
+# 方式二：直接运行
 python main.py
+```
+
+### 5. （可选）单独测试对话模块
+
+```bash
+python chat.py
 ```
 
 ## 接口说明
@@ -82,18 +86,17 @@ python main.py
 
 返回当前生效的应用配置。
 
-### 3. `POST /chat` — 单次聊天（非流式）
+### 3. `POST /chat` — 聊天接口
 
-请求体：
+**单轮对话请求体：**
 
 ```json
 {
-  "message": "你好，请介绍下你自己",
-  "stream": false
+  "message": "你好，请介绍下你自己"
 }
 ```
 
-或使用多轮消息历史：
+**多轮对话请求体：**
 
 ```json
 {
@@ -104,7 +107,7 @@ python main.py
 }
 ```
 
-响应：
+**响应：**
 
 ```json
 {
@@ -112,35 +115,19 @@ python main.py
 }
 ```
 
-### 4. `POST /chat/stream` — 流式聊天（SSE）
-
-请求体同上。
-
-响应为 SSE 流：
-
-```
-data: 你
-data: 好
-data: ！
-data: 我
-data: 是
-...
-data: [DONE]
-```
-
-可使用 curl 测试：
+**使用 curl 测试：**
 
 ```bash
-curl -N -X POST http://localhost:8000/chat/stream \
+curl -X POST http://localhost:8000/chat \
   -H "Content-Type: application/json" \
   -d '{"message": "你好"}'
 ```
 
-或使用 PowerShell：
+**使用 PowerShell 测试：**
 
 ```powershell
 $body = @{message = "你好"} | ConvertTo-Json
-Invoke-WebRequest -Uri "http://localhost:8000/chat/stream" `
+Invoke-RestMethod -Uri "http://localhost:8000/chat" `
   -Method POST -ContentType "application/json" -Body $body
 ```
 
@@ -149,7 +136,7 @@ Invoke-WebRequest -Uri "http://localhost:8000/chat/stream" `
 ```
 backend/
 ├── main.py              # FastAPI 应用入口（路由定义）
-├── chat.py              # LangChain 模型封装（流式聊天）
+├── chat.py              # LangChain + 硅基流动 对话模块
 ├── config.py            # 应用配置（基于 pydantic-settings）
 ├── schemas.py           # 请求/响应数据模型
 ├── requirements.txt     # 项目依赖
@@ -160,20 +147,25 @@ backend/
 
 ## 切换模型
 
-在 `chat.py` 中替换 `get_llm()` 实现即可切换到其他模型，例如：
+在 `.env` 中修改 `SILICONFLOW_MODEL` 即可切换模型，硅基流动支持的常用模型：
 
-- **OpenAI**：`from langchain_openai import ChatOpenAI`
-- **Anthropic Claude**：`from langchain_anthropic import ChatAnthropic`
-- **通义千问**：`from langchain_community.chat_models.tongyi import ChatTongyi`
-- **本地 Ollama**：`from langchain_community.chat_models import ChatOllama`
+| 模型 ID | 说明 |
+| --- | --- |
+| `deepseek-ai/DeepSeek-V3` | 默认，强综合能力 |
+| `deepseek-ai/DeepSeek-R1` | 强推理 |
+| `Qwen/Qwen3-235B-A22B-Instruct-2507` | 通义千问 3 旗舰 |
+| `Pro/Qwen/Qwen2.5-7B-Instruct` | 通义千问 7B，轻量 |
+
+完整模型列表：https://docs.siliconflow.cn/cn/api-reference/models
+
+## 关于硅基流动
+
+硅基流动（SiliconFlow）提供 **OpenAI 兼容** 的 Chat Completions 接口，因此我们直接复用 LangChain 官方的 `langchain-openai` 包，通过设置 `base_url=https://api.siliconflow.cn/v1` 来调用，无需额外的 provider 包。
 
 ## 常见问题
 
-**Q: 启动时报 `DEEPSEEK_API_KEY 未配置`？**
-A: 请确认 `.env` 文件已创建在 `backend/` 目录下，且 `DEEPSEEK_API_KEY` 已设置为有效值。
+**Q: 启动时报 `SILICONFLOW_API_KEY 未配置`？**
+A: 请确认 `.env` 文件已创建在 `backend/` 目录下，且 `SILICONFLOW_API_KEY` 已设置为有效值。
 
-**Q: 流式接口没有逐字返回？**
-A: 请检查网络是否能访问 `https://api.deepseek.com`，以及 API Key 是否有效。
-
-**Q: 想要使用其他模型？**
-A: 修改 `chat.py` 中的 `get_llm()`，并在 `requirements.txt` 中添加对应依赖。
+**Q: 模型返回为空或乱码？**
+A: 请检查网络是否能访问 `https://api.siliconflow.cn`，以及模型 ID 是否拼写正确。
